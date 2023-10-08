@@ -1,4 +1,4 @@
-/*the_grainer by Oscar Pablo Di Liscia
+/*grainer by Oscar Pablo Di Liscia
 Granular synthesis external with 3D per grain spatialisation for Pure Data
 Programa de Investigación: Sistemas Temporales y Sintesis Espacial en el Arte Sonoro
 odiliscia@unq.edu.ar
@@ -9,10 +9,10 @@ Damián Anache, 06/01/2016
 /*
 todo:
 Better resampling quality.
-Add the list selection for envelopes. (add method in the_grainer_tilde_any and modify set_oscil)
+Add the list selection for envelopes. (add method in grainer_tilde_any and modify set_oscil)
 Improve the data structure (it works, but could be much simpler)
 */
-#include "../include/m_pd.h"
+#include <m_pd.h>
 #include <math.h>
 #include <malloc.h>
 #include <stdio.h>
@@ -21,7 +21,7 @@ Improve the data structure (it works, but could be much simpler)
 
 /******************************************************************/
 /******************************************************************/
-static t_class *the_grainer_tilde_class;
+static t_class *grainer_tilde_class;
 /******************************************************************/
 /*CONSTANTS*/
 /******************************************************************/
@@ -151,7 +151,7 @@ typedef struct {
 	t_float *data;
 }LSEL;
 /******************************************************************/					
-typedef struct _the_grainer_tilde {
+typedef struct _grainer_tilde {
 	t_object x_obj;
 	t_sample f;
 	GRAIN	**g;			/*a pointer to an array of pointers of GRAIN structures*/
@@ -215,30 +215,30 @@ typedef struct _the_grainer_tilde {
 	t_outlet *out_bang;		/*outlet to output a bang each time that gcound grains are generated*/
   	t_float osig[MAX_OUTPUTS];   	/*array to store the output, may be stereo (intensity panning) or (Ambisonic B Format) 4, 9 16 channels*/
 									/*WARNING: osig[nch] is used to store the reverb send*/
-} t_the_grainer_tilde;
+} t_grainer_tilde;
 /******************************************************************/	
 /************** FUNCTION PROTOTYPES *******************************/
 /******************************************************************/
 /*OSCIL*/
-OSCIL   *set_oscil(int start, int end, int LT, int Ldir, t_float gliss, t_float glissrnd, double incr, t_the_grainer_tilde *x, int which);
-t_float	goscil(OSCIL *oscil, t_float amp, t_the_grainer_tilde *x );
-t_float	aoscil(OSCIL *oscil, t_float amp, t_the_grainer_tilde *x );
+OSCIL   *set_oscil(int start, int end, int LT, int Ldir, t_float gliss, t_float glissrnd, double incr, t_grainer_tilde *x, int which);
+t_float	goscil(OSCIL *oscil, t_float amp, t_grainer_tilde *x );
+t_float	aoscil(OSCIL *oscil, t_float amp, t_grainer_tilde *x );
 /*GRAIN*/
-void  	the_grainer_tilde_tables(t_the_grainer_tilde *x, t_symbol *name, int which, char *type) ;
+void  	grainer_tilde_tables(t_grainer_tilde *x, t_symbol *name, int which, char *type) ;
 t_float set_birand_val(t_float base, t_float rdev);
-void  	compute_gap(t_the_grainer_tilde *x);
-void  	set_pan_gains(t_the_grainer_tilde *x, GRAIN *g);
-GRAIN 	*grain_setup(t_the_grainer_tilde *x);
-void  	grain_sinth(GRAIN *g, t_the_grainer_tilde *x);
-void  	grainer_setup(t_the_grainer_tilde *x);
-void  	grainer(GRAIN ***g, t_the_grainer_tilde *x);
-void  	display_grainer_params(t_the_grainer_tilde *x);
+void  	compute_gap(t_grainer_tilde *x);
+void  	set_pan_gains(t_grainer_tilde *x, GRAIN *g);
+GRAIN 	*grain_setup(t_grainer_tilde *x);
+void  	grain_sinth(GRAIN *g, t_grainer_tilde *x);
+void  	grainer_setup(t_grainer_tilde *x);
+void  	grainer(GRAIN ***g, t_grainer_tilde *x);
+void  	display_grainer_params(t_grainer_tilde *x);
 void  	charray_print(int size, t_float *data, char *str);
-void  	gap_restart(t_the_grainer_tilde *x);
-void  	n_set_dval_sel(t_the_grainer_tilde *x, t_symbol *string, t_int argc, t_atom *argv, int what, char *whats);
-t_float get_float(t_the_grainer_tilde *x, int what);
+void  	gap_restart(t_grainer_tilde *x);
+void  	n_set_dval_sel(t_grainer_tilde *x, t_symbol *string, t_int argc, t_atom *argv, int what, char *whats);
+t_float get_float(t_grainer_tilde *x, int what);
 /******************************************************************/
-void the_grainer_tilde_destroy(t_the_grainer_tilde *x);
+void grainer_tilde_destroy(t_grainer_tilde *x);
 /******************************************************************/
 /******************************************************************/
 /******************************************************************/
@@ -247,7 +247,7 @@ void the_grainer_tilde_destroy(t_the_grainer_tilde *x);
 /******************************************************************/
 /*Returns a float value from a list according the selection type set (RANDOM, CYCLE, SHUFFLE)*/
 /*Warning! In the case of a list with pairs of values (start/dur) it returns the index...NOT the value*/
-t_float get_float(t_the_grainer_tilde *x, int what)
+t_float get_float(t_grainer_tilde *x, int what)
 {
 int u, index, i, add, size;
 t_float s;
@@ -302,7 +302,7 @@ else
 	return((float)index);
 }	
 /******************************************************************/
-void  n_set_dval_sel(t_the_grainer_tilde *x, t_symbol *string, t_int argc, t_atom *argv, int what, char *whats)
+void  n_set_dval_sel(t_grainer_tilde *x, t_symbol *string, t_int argc, t_atom *argv, int what, char *whats)
 {
 int i, j, pflag, size;
 t_float *pointer=NULL;
@@ -313,13 +313,13 @@ if(argc==0) {
 	x->lsel[what].type=0;
 	x->lsel[what].size=0;
 	x->lsel[what].cont=0;	
-	if(x->post_ctrl) post(" the_grainer~: %s list unset", whats);
+	if(x->post_ctrl) post(" grainer~: %s list unset", whats);
 	return;
 }
 
 //check if the cycling or shuffle selection methods are requested and set the type accordingly
 temp = atom_getsymbol(&argv[argc-1]);
-post(" the_grainer~: %s ", temp->s_name);
+post(" grainer~: %s ", temp->s_name);
 if(strcmp(temp->s_name, "float") == 0) {
 		x->lsel[what].type=RND;
 		x->lsel[what].size=argc;
@@ -353,19 +353,19 @@ for(i=0; i < x->lsel[what].size; ++i) {
 			aux= fabs(atom_getfloat(&argv[i]));
 			if(!x->gtab[(int)aux].size) {
 				x->lsel[what].size=0;
-				post(" the_grainer~: non allocated grain table (%d) requested, use the 'gtab' method to allocate it first", (int)aux);
+				post(" grainer~: non allocated grain table (%d) requested, use the 'gtab' method to allocate it first", (int)aux);
 				return;
 			x->lsel[what].data[i]=aux; 	
 			}
 		}
 }
 
-if(x->post_ctrl) post(" the_grainer~: %s list set size=%d stype=(%d)", whats, x->lsel[what].size, x->lsel[what].type);
+if(x->post_ctrl) post(" grainer~: %s list set size=%d stype=(%d)", whats, x->lsel[what].size, x->lsel[what].type);
 
 return;
 }
 /******************************************************************/
-void the_grainer_tilde_grainer_setup(t_the_grainer_tilde *x)
+void grainer_tilde_grainer_setup(t_grainer_tilde *x)
 {
   int i;
 
@@ -384,42 +384,42 @@ void the_grainer_tilde_grainer_setup(t_the_grainer_tilde *x)
 		x->g[0]=(GRAIN*)grain_setup(x);
 		x->active=1;
 		x->pause=0;
-		post(" the_grainer~: initialized");
+		post(" grainer~: initialized");
 	}  	
   }
   return;
 }
 /******************************************************************/
-void the_grainer_tilde_usegtn(t_the_grainer_tilde *x, t_float f)
+void grainer_tilde_usegtn(t_grainer_tilde *x, t_float f)
 {
 	int index=(int)f;
 
 	if(!x->gtab[index].size) {
-		post(" the_grainer~: non allocated grain table requested, use the 'gtab' method to allocate it first");
+		post(" grainer~: non allocated grain table requested, use the 'gtab' method to allocate it first");
 		return;
 	}
 	x->ngtact=index;
 	/*if random selection of tables by a list was active, set it inactive forcing the list size to 0*/	
 	if(x->lsel[AUDS].size) {	
 		x->lsel[AUDS].size=0;
-		post(" the_grainer~: list selection of grain tables unset ");
+		post(" grainer~: list selection of grain tables unset ");
 	}	
 	return;
 }
 /******************************************************************/
-void the_grainer_tilde_useatn(t_the_grainer_tilde *x, t_float f)
+void grainer_tilde_useatn(t_grainer_tilde *x, t_float f)
 {
 	int index=(int)f;
 
 	if(!x->atab[index].size) {
-		post(" the_grainer~: non allocated envelope table requested, use the 'atab' method to allocate it first");
+		post(" grainer~: non allocated envelope table requested, use the 'atab' method to allocate it first");
 		return;
 	}
 	x->netact=index;	
 	return;
 }
 /******************************************************************/
-void the_grainer_tilde_any(t_the_grainer_tilde *x, t_symbol *string, t_int argc, t_atom *argv)
+void grainer_tilde_any(t_grainer_tilde *x, t_symbol *string, t_int argc, t_atom *argv)
 {
   int i, aux=0;
   t_float f;
@@ -428,14 +428,14 @@ void the_grainer_tilde_any(t_the_grainer_tilde *x, t_symbol *string, t_int argc,
   /*stop*/
   if(strcmp(string->s_name, "stop") == 0) {
     x->active=0;
-    post(" the_grainer~: stopped");
+    post(" grainer~: stopped");
     return;
   }
   /*start*/
   if(strcmp(string->s_name, "start") == 0) {
     if(x->g && x->ngt && x->net) {
       x->active=1;					
-      post(" the_grainer~: active");
+      post(" grainer~: active");
     }
     return;
   }
@@ -443,14 +443,14 @@ void the_grainer_tilde_any(t_the_grainer_tilde *x, t_symbol *string, t_int argc,
   /*audio table*/
   if(strcmp(string->s_name, "gtab") == 0) {
 	temp2=atom_getsymbol(&argv[0]);
-	the_grainer_tilde_tables(x, temp2, GTAB, "audio");
+	grainer_tilde_tables(x, temp2, GTAB, "audio");
 	return;
   }
 
   /*envelope table*/
   if(strcmp(string->s_name, "atab") == 0) {
 	temp2=atom_getsymbol(&argv[0]);
-	the_grainer_tilde_tables(x, temp2, ATAB, "envelope");
+	grainer_tilde_tables(x, temp2, ATAB, "envelope");
 	return;
   }
   
@@ -459,7 +459,7 @@ void the_grainer_tilde_any(t_the_grainer_tilde *x, t_symbol *string, t_int argc,
     	f=atom_getfloat(&argv[0]);
 		x->gcount=(int)f;
 		x->gcountsiz=x->gcount;
-		post(" the_grainer~: grain count set to %d", x->gcount);
+		post(" grainer~: grain count set to %d", x->gcount);
 		return;
 	}
 	
@@ -468,13 +468,13 @@ void the_grainer_tilde_any(t_the_grainer_tilde *x, t_symbol *string, t_int argc,
     	f=atom_getfloat(&argv[0]);
 	i=(int)f;
 	if(i != 1. && i != 0.) {
-		post(" the_grainer~: unknown pause value %i (only 0 or 1 are available)", i);
+		post(" grainer~: unknown pause value %i (only 0 or 1 are available)", i);
 		return;
 	}
 	x->pause=i;	
 	if (x->post_ctrl){
-		if(i) post(" the_grainer~: paused");
-		else post(" the_grainer~: resumed");
+		if(i) post(" grainer~: paused");
+		else post(" grainer~: resumed");
 	}	
 	return;
   }
@@ -482,7 +482,7 @@ void the_grainer_tilde_any(t_the_grainer_tilde *x, t_symbol *string, t_int argc,
   /*seed*/
   if(strcmp(string->s_name, "seed") == 0) {
     f= atom_getfloat(&argv[0]);  
-    if (x->post_ctrl) post(" the_grainer~: seeding with %f", f);
+    if (x->post_ctrl) post(" grainer~: seeding with %f", f);
     srand(f);
     return;
   }
@@ -549,34 +549,34 @@ void the_grainer_tilde_any(t_the_grainer_tilde *x, t_symbol *string, t_int argc,
   if(strcmp(string->s_name, "loop_t") == 0) {
   	f=atom_getfloat(&argv[0]);
 	if(f > 2. || f < 0.) {
-		post(" the_grainer~: unknown loop_type option %f (only 0, 1 or 2 are available)", f);
+		post(" grainer~: unknown loop_type option %f (only 0, 1 or 2 are available)", f);
 		return;
 	}	
   	x->loop_type= (int)f;
 	x->loop_direction=0;
-    	if(x->post_ctrl)post(" the_grainer~: loop type set to: %d", (int)f);
+    	if(x->post_ctrl)post(" grainer~: loop type set to: %d", (int)f);
 	return;
   }
   /*glissando added by Damián Anache, 06/01/2016*/
   if(strcmp(string->s_name, "gli") == 0) {
 	f=atom_getfloat(&argv[0]);
 	if(f < 0. ) {
-		post(" the_grainer~: wrong gliss value %f (only positive values are allowed)", f);
+		post(" grainer~: wrong gliss value %f (only positive values are allowed)", f);
 		return;
 	}
 	x->gli= f;	
-	if(x->post_ctrl)post(" the_grainer~: new glissandi multiplier: %f", f);
+	if(x->post_ctrl)post(" grainer~: new glissandi multiplier: %f", f);
 	return;
   }
   /*glissando random deviation added by Damián Anache, 06/01/2016*/
   if(strcmp(string->s_name, "glir") == 0) {
 	f=atom_getfloat(&argv[0]);
 	if(f < 0. ) {
-		post(" the_grainer~: wrong gliss random deviation value %f (only positive values are allowed)", f);
+		post(" grainer~: wrong gliss random deviation value %f (only positive values are allowed)", f);
 		return;
 	}
 	x->glir= f;	
-	if(x->post_ctrl)post(" the_grainer~: new glissandi random deviation: %f", f);
+	if(x->post_ctrl)post(" grainer~: new glissandi random deviation: %f", f);
 	return;
   }
   /*grain amp */
@@ -652,12 +652,12 @@ if(strcmp(string->s_name, "ptr_dur_table") == 0) {
 /*
 	if(argc % 2 != 0) {
 		if(x->post_ctrl)
-			post(" the_grainer~: warning, final duration value is missing, ommiting last access time value");
+			post(" grainer~: warning, final duration value is missing, ommiting last access time value");
 		aux=1;
 	}
 	if(argc-aux > 0 && argc-aux <= 3 ) {
 		if(x->post_ctrl)
-			post(" the_grainer~: list must have at least two pairs of time and duration values \n no action taken");
+			post(" grainer~: list must have at least two pairs of time and duration values \n no action taken");
 		return;		
 	}
 */
@@ -683,12 +683,12 @@ return;
     	f=atom_getfloat(&argv[0]);
 	i=(int)f;
 	if(i != 1. && i != 0.) {
-		post("the_grainer~: unknown post_ctrl value %i (only 0 or 1 are available)", i);
+		post("grainer~: unknown post_ctrl value %i (only 0 or 1 are available)", i);
 		return;
 	}
 	x->post_ctrl=i;	
-	if(i)	post("the_grainer~: console posts are enable");
-	else  post("the_grainer~: console posts are disable");
+	if(i)	post("grainer~: console posts are enable");
+	else  post("grainer~: console posts are disable");
 	return;
   }
 
@@ -696,22 +696,22 @@ return;
  if(strcmp(string->s_name, "sound_speed") == 0) {
     	x->sound_speed=atom_getfloat(&argv[0]);
 	if(x->sound_speed <= MIN_SOUND_SPEED) {
-		post("the_grainer~: ilegal sound speed requested (%f m/s), minimal is (%fm/s) using default value (340 m/s)", x->sound_speed, MIN_SOUND_SPEED);
+		post("grainer~: ilegal sound speed requested (%f m/s), minimal is (%fm/s) using default value (340 m/s)", x->sound_speed, MIN_SOUND_SPEED);
 		x->sound_speed=SOUND_SPEED;
 	}
 	else
-		post("the_grainer~: sound speed changed, now is %f m/s", x->sound_speed);	
+		post("grainer~: sound speed changed, now is %f m/s", x->sound_speed);	
 	return;
  }
 /*distance exponent*/
  if(strcmp(string->s_name, "dist_exp") == 0) {
     	x->dist_exp=atom_getfloat(&argv[0]);
 	if(x->dist_exp <=0.) {
-		post("the_grainer~: ilegal dist_exp requested (%f), using default value (1)", x->dist_exp);
+		post("grainer~: ilegal dist_exp requested (%f), using default value (1)", x->dist_exp);
 		x->dist_exp=1.;
 	}
 	else
-		post("the_grainer~: dist_exp changed, now is %f", x->dist_exp);	
+		post("grainer~: dist_exp changed, now is %f", x->dist_exp);	
 	return;
  }
 /*delay on-off*/
@@ -719,12 +719,12 @@ return;
     	f=atom_getfloat(&argv[0]);
 	i=(int)f;
 	if(i != 1. && i != 0.) {
-		post("the_grainer~: unknown dist_delay value %i (only 0 or 1 are available)", i);
+		post("grainer~: unknown dist_delay value %i (only 0 or 1 are available)", i);
 		return;
 	}
 	x->delflag=i;	
-	if(i)	post("the_grainer~: distance delay simulation on");
-	else    post("the_grainer~: distance delay simulation off");
+	if(i)	post("grainer~: distance delay simulation on");
+	else    post("grainer~: distance delay simulation off");
 	return;
   }
 
@@ -732,7 +732,7 @@ return;
 return;
 }
 /*******************************************************************/
-void the_grainer_tilde_tables(t_the_grainer_tilde *x, t_symbol *name, int which, char *type) 
+void grainer_tilde_tables(t_grainer_tilde *x, t_symbol *name, int which, char *type) 
 {
 t_garray *a;
 int size=0, i, chflag=TRUE, tloc=0;
@@ -752,7 +752,7 @@ else{
 	
 if (!(a = (t_garray *)pd_findbyclass(name, garray_class))) {
 	if (*name->s_name) {
-      	pd_error(x, " the_grainer~: ERROR, %s: no such array", name->s_name);
+      	pd_error(x, " grainer~: ERROR, %s: no such array", name->s_name);
 		gtab[*ngtact].size=0;
 		return;
 	}
@@ -767,7 +767,7 @@ for(i=0; i < *ngt; i++) {
 	}
 }
 if(chflag && *ngt==MAX_AUDIO_TABLES) {	/*do nothing if maximal audio tables is reach*/
-	if(x->post_ctrl)post(" the_grainer~: maximal number of audio tables (%d) reached, no action taken ", MAX_AUDIO_TABLES);
+	if(x->post_ctrl)post(" grainer~: maximal number of audio tables (%d) reached, no action taken ", MAX_AUDIO_TABLES);
 	return;
 }
 	
@@ -775,7 +775,7 @@ if(chflag && *ngt==MAX_AUDIO_TABLES) {	/*do nothing if maximal audio tables is r
 if(which==GTAB) {	
 	if(x->lsel[AUDS].size) {	
 		x->lsel[AUDS].size=0;
-		post(" the_grainer~: list selection of grain tables unset ");
+		post(" grainer~: list selection of grain tables unset ");
 	}
 }	
 
@@ -788,7 +788,7 @@ if(chflag) {	/*allocate a new table (set active table to the last one and increm
 
 size = garray_npoints(a);
 if (!garray_getfloatwords(a, &size, &gtab[tloc].table)) {
-	pd_error(x, " the_grainer~ ERROR, %s: bad template for the_grainer~", name->s_name);
+	pd_error(x, " grainer~ ERROR, %s: bad template for grainer~", name->s_name);
 	gtab[tloc].size=0;
 	return;
 }
@@ -799,25 +799,25 @@ gtab[tloc].name=name;
 if(chflag) {
 	*ngtact=*ngt;
 	*ngt+=1;	   
-	if(x->post_ctrl)post(" the_grainer~: new %s table loaded is %s, %d samples ", type, gtab[tloc].name->s_name, gtab[tloc].size);
+	if(x->post_ctrl)post(" grainer~: new %s table loaded is %s, %d samples ", type, gtab[tloc].name->s_name, gtab[tloc].size);
 	if(x->post_ctrl)post("              the number of active %s tables is %d, the current active table is %d (%s) ", type, *ngt, *ngtact, gtab[tloc].name->s_name);
 	
 }
 else {
-	if(x->post_ctrl)post(" the_grainer~: warning, %s table %s, overwritten %d samples ", type, gtab[tloc].name->s_name, gtab[tloc].size);
+	if(x->post_ctrl)post(" grainer~: warning, %s table %s, overwritten %d samples ", type, gtab[tloc].name->s_name, gtab[tloc].size);
 	if(x->post_ctrl)post("              the number of active %s tables is %d, the current active table is %d (%s) ", type, *ngt, *ngtact, gtab[tloc].name->s_name);
 
 }
 
-the_grainer_tilde_grainer_setup(x); 	
+grainer_tilde_grainer_setup(x); 	
 garray_usedindsp(a);
 	
 return;
 }
 /******************************************************************/
-t_int *the_grainer_tilde_perform_ambi3(t_int *w)
+t_int *grainer_tilde_perform_ambi3(t_int *w)
 {
-  t_the_grainer_tilde *x = (t_the_grainer_tilde *)(w[1]);
+  t_grainer_tilde *x = (t_grainer_tilde *)(w[1]);
   t_sample  *W =    (t_sample *)(w[2]);
   t_sample  *X =    (t_sample *)(w[3]);
   t_sample  *Y =    (t_sample *)(w[4]);
@@ -884,9 +884,9 @@ t_int *the_grainer_tilde_perform_ambi3(t_int *w)
   return (w+20);
 }
 /******************************************************************/
-t_int *the_grainer_tilde_perform_ambi2(t_int *w)
+t_int *grainer_tilde_perform_ambi2(t_int *w)
 {
-  t_the_grainer_tilde *x = (t_the_grainer_tilde *)(w[1]);
+  t_grainer_tilde *x = (t_grainer_tilde *)(w[1]);
   t_sample  *W =    (t_sample *)(w[2]);
   t_sample  *X =    (t_sample *)(w[3]);
   t_sample  *Y =    (t_sample *)(w[4]);
@@ -933,9 +933,9 @@ t_int *the_grainer_tilde_perform_ambi2(t_int *w)
   return (w+13);
 }
 /******************************************************************/
-t_int *the_grainer_tilde_perform_ambi(t_int *w)
+t_int *grainer_tilde_perform_ambi(t_int *w)
 {
-  t_the_grainer_tilde *x = (t_the_grainer_tilde *)(w[1]);
+  t_grainer_tilde *x = (t_grainer_tilde *)(w[1]);
   t_sample  *W =    (t_sample *)(w[2]);
   t_sample  *X =    (t_sample *)(w[3]);
   t_sample  *Y =    (t_sample *)(w[4]);
@@ -965,9 +965,9 @@ t_int *the_grainer_tilde_perform_ambi(t_int *w)
   return (w+8);
 }
 /******************************************************************/
-t_int *the_grainer_tilde_perform_ipan(t_int *w)
+t_int *grainer_tilde_perform_ipan(t_int *w)
 {
-	t_the_grainer_tilde *x = (t_the_grainer_tilde *)(w[1]);
+	t_grainer_tilde *x = (t_grainer_tilde *)(w[1]);
 
 	t_sample  *out1 =    (t_sample *)(w[2]);
  	t_sample  *out2 =    (t_sample *)(w[3]);
@@ -993,9 +993,9 @@ t_int *the_grainer_tilde_perform_ipan(t_int *w)
 	return (w+6);
 }
 /******************************************************************/
-t_int *the_grainer_tilde_perform_mono(t_int *w)
+t_int *grainer_tilde_perform_mono(t_int *w)
 {
-	t_the_grainer_tilde *x = (t_the_grainer_tilde *)(w[1]);
+	t_grainer_tilde *x = (t_grainer_tilde *)(w[1]);
 	t_sample  *out   =    (t_sample *)(w[2]);
 	t_sample  *rsend =    (t_sample *)(w[3]);
 	int          n   =    (int) (w[4]);
@@ -1017,7 +1017,7 @@ t_int *the_grainer_tilde_perform_mono(t_int *w)
  	return (w+5);
 }
 /******************************************************************/
-void the_grainer_tilde_dsp(t_the_grainer_tilde *x, t_signal **sp)
+void grainer_tilde_dsp(t_grainer_tilde *x, t_signal **sp)
 {
 	int i, size;
 	t_garray *a;
@@ -1049,24 +1049,24 @@ void the_grainer_tilde_dsp(t_the_grainer_tilde *x, t_signal **sp)
 	/*now, if everything seems to be OK, we call the corresponding perform function*/
 	switch(x->nch) {
  	 	case (MONO): { /* mono */ 
-			dsp_add(the_grainer_tilde_perform_mono, 4, x, sp[0]->s_vec, sp[1]->s_vec, sp[0]->s_n);
+			dsp_add(grainer_tilde_perform_mono, 4, x, sp[0]->s_vec, sp[1]->s_vec, sp[0]->s_n);
 			break;
 		}	
  		case (IPAN): { /* stereo intensity panning */ 
-			dsp_add(the_grainer_tilde_perform_ipan, 5, x, sp[0]->s_vec, sp[1]->s_vec, sp[2]->s_vec, sp[0]->s_n);
+			dsp_add(grainer_tilde_perform_ipan, 5, x, sp[0]->s_vec, sp[1]->s_vec, sp[2]->s_vec, sp[0]->s_n);
 			break;
 		}	
   	 	case (AMBI): {  /* ambisonic B format, first order */
-			dsp_add(the_grainer_tilde_perform_ambi, 7, x, sp[0]->s_vec, sp[1]->s_vec, sp[2]->s_vec, sp[3]->s_vec, sp[4]->s_vec, sp[0]->s_n);
+			dsp_add(grainer_tilde_perform_ambi, 7, x, sp[0]->s_vec, sp[1]->s_vec, sp[2]->s_vec, sp[3]->s_vec, sp[4]->s_vec, sp[0]->s_n);
 			break;	
 		}
 		case (AMBI2): {  /* ambisonic B format, second order */
-			dsp_add(the_grainer_tilde_perform_ambi2, 12, x, sp[0]->s_vec, sp[1]->s_vec, sp[2]->s_vec, sp[3]->s_vec, sp[4]->s_vec, sp[5]->s_vec,
+			dsp_add(grainer_tilde_perform_ambi2, 12, x, sp[0]->s_vec, sp[1]->s_vec, sp[2]->s_vec, sp[3]->s_vec, sp[4]->s_vec, sp[5]->s_vec,
 			sp[6]->s_vec, sp[7]->s_vec, sp[8]->s_vec, sp[9]->s_vec, sp[0]->s_n);
 			break;	
 		}
 		case (AMBI3): {  /* ambisonic B format, third order */
-			dsp_add(the_grainer_tilde_perform_ambi3, 19, x, sp[0]->s_vec, sp[1]->s_vec, sp[2]->s_vec, sp[3]->s_vec, sp[4]->s_vec, sp[5]->s_vec,
+			dsp_add(grainer_tilde_perform_ambi3, 19, x, sp[0]->s_vec, sp[1]->s_vec, sp[2]->s_vec, sp[3]->s_vec, sp[4]->s_vec, sp[5]->s_vec,
 			sp[6]->s_vec, sp[7]->s_vec, sp[8]->s_vec, sp[9]->s_vec, sp[10]->s_vec, sp[11]->s_vec, sp[12]->s_vec, sp[13]->s_vec, sp[14]->s_vec,
 			sp[15]->s_vec, sp[16]->s_vec, sp[0]->s_n);
 			break;	
@@ -1078,11 +1078,11 @@ void the_grainer_tilde_dsp(t_the_grainer_tilde *x, t_signal **sp)
 }
 /******************************************************************/
 /******************************************************************/
-void *the_grainer_tilde_new(t_floatarg f)
+void *grainer_tilde_new(t_floatarg f)
 { 
 int i;
 
-t_the_grainer_tilde *x = (t_the_grainer_tilde *)pd_new(the_grainer_tilde_class);
+t_grainer_tilde *x = (t_grainer_tilde *)pd_new(grainer_tilde_class);
   
 grainer_setup(x);
 
@@ -1101,23 +1101,23 @@ x->out_bang = outlet_new(&x->x_obj, &s_bang);		/*for bang each time n grains are
 	
 switch(x->nch) {
 	case(MONO): {
-		post(" the_grainer~: mono output set ");
+		post(" grainer~: mono output set ");
 		break;	
 	}
 	case(IPAN): {
-		post(" the_grainer~: stereo output set (Intensity Panning)");
+		post(" grainer~: stereo output set (Intensity Panning)");
 		break;	
 	}
 	case(AMBI): {
-		post(" the_grainer~: output set to First order Ambisonic B format \n signal outlets: W, X, Y, Z, Reverb_send");
+		post(" grainer~: output set to First order Ambisonic B format \n signal outlets: W, X, Y, Z, Reverb_send");
 		break;	
 	}
 	case(AMBI2): {
-		post(" the_grainer~: output set to Second order Ambisonic B format \n signal outlets: W, X, Y, Z, R, S, T, U, V, Reverb_send");	
+		post(" grainer~: output set to Second order Ambisonic B format \n signal outlets: W, X, Y, Z, R, S, T, U, V, Reverb_send");	
 		break;	
 	}
 	case(AMBI3): {
-		post(" the_grainer~: output set to Third order Ambisonic B format \n signal outlets: W, X, Y, Z, R, S, T, U, V, K, L, M, N, O, P, Q, Reverb_send");	
+		post(" grainer~: output set to Third order Ambisonic B format \n signal outlets: W, X, Y, Z, R, S, T, U, V, K, L, M, N, O, P, Q, Reverb_send");	
 		break;	
 	}
 	default: {
@@ -1128,24 +1128,24 @@ return (void *)x;
 }
 /******************************************************************/
 /******************************************************************/
-void the_grainer_tilde_setup() {
+void grainer_tilde_setup() {
 
-	the_grainer_tilde_class = class_new(gensym("the_grainer~"),
-				     (t_newmethod)the_grainer_tilde_new,
-				     (t_method)the_grainer_tilde_destroy, sizeof(t_the_grainer_tilde),
+	grainer_tilde_class = class_new(gensym("grainer~"),
+				     (t_newmethod)grainer_tilde_new,
+				     (t_method)grainer_tilde_destroy, sizeof(t_grainer_tilde),
 				     CLASS_DEFAULT, A_DEFFLOAT, 0);	
 
-	class_addanything(the_grainer_tilde_class, the_grainer_tilde_any);
-	class_addmethod(the_grainer_tilde_class,(t_method)the_grainer_tilde_dsp, gensym("dsp"),0);
-	class_addmethod(the_grainer_tilde_class, (t_method)the_grainer_tilde_usegtn,
+	class_addanything(grainer_tilde_class, grainer_tilde_any);
+	class_addmethod(grainer_tilde_class,(t_method)grainer_tilde_dsp, gensym("dsp"),0);
+	class_addmethod(grainer_tilde_class, (t_method)grainer_tilde_usegtn,
         gensym("usegtn"), A_DEFFLOAT, 0);
-	class_addmethod(the_grainer_tilde_class, (t_method)the_grainer_tilde_useatn,
+	class_addmethod(grainer_tilde_class, (t_method)grainer_tilde_useatn,
         gensym("useatn"), A_DEFFLOAT, 0);
-  	post("\n the_grainer~ external V1.2 March 2022 \n Pablo Di Liscia with the collaboration of Damian Anache \n UNQ, Argentina \n");
+  	post("\n grainer~ external V1.2 March 2022 \n Pablo Di Liscia with the collaboration of Damian Anache \n UNQ, Argentina \n");
 	return;
 }
 /******************************************************************/
-void the_grainer_tilde_destroy(t_the_grainer_tilde *x) 
+void grainer_tilde_destroy(t_grainer_tilde *x) 
 {
 int i;
 	for(i=0; i<x->ng; ++i){
@@ -1161,7 +1161,7 @@ int i;
 /******************************************************************/
 /**************DEFINITIONS OF THE AUDIO FUNCTIONS *****************/
 /******************************************************************/
-OSCIL *set_oscil(int start, int end, int LT, int Ldir, t_float gliss, t_float glissrnd, double incr, t_the_grainer_tilde *x, int which)
+OSCIL *set_oscil(int start, int end, int LT, int Ldir, t_float gliss, t_float glissrnd, double incr, t_grainer_tilde *x, int which)
 {
 OSCIL *oscil;
 
@@ -1194,7 +1194,7 @@ else {										/*envelope oscillator*/
 return(oscil);
 }
 /********************************************************/
-t_float goscil(OSCIL *oscil, t_float amp, t_the_grainer_tilde *x )
+t_float goscil(OSCIL *oscil, t_float amp, t_grainer_tilde *x )
 {
 /*table-lookup oscillator with loops forward and forward-backward*/
 t_float output=0.;
@@ -1263,7 +1263,7 @@ return(amp*output);
 
 }
 /********************************************************/
-t_float aoscil(OSCIL *oscil, t_float amp, t_the_grainer_tilde *x )
+t_float aoscil(OSCIL *oscil, t_float amp, t_grainer_tilde *x )
 {
 /*this is a simple table-lookup oscillator*/
 t_float output=0.;
@@ -1293,7 +1293,7 @@ val= val <=0.? base : val;
 return(val);
 }
 /********************************************************************/
-void set_pan_gains(t_the_grainer_tilde *x, GRAIN *g)
+void set_pan_gains(t_grainer_tilde *x, GRAIN *g)
 {
 /*auxiliar variables*/
 t_float cosazi, sinazi,cosele, sinele, sin2ele, coselepow2, azi2;
@@ -1399,7 +1399,7 @@ else {
 return;
 }
 /********************************************************************/
-GRAIN *grain_setup(t_the_grainer_tilde *x)
+GRAIN *grain_setup(t_grainer_tilde *x)
 {
 	t_float from=0., end=0., tabledur=(t_float)x->gtab[x->ngtact].size/x->sr, gli=x->gli, glir=x->glir;
 	t_float faux;	
@@ -1488,7 +1488,7 @@ GRAIN *grain_setup(t_the_grainer_tilde *x)
 			g->delflag=TRUE;
 			}
 			else {
-				post(" the_grainer~: could not allocate delay buffer. Delay suppressed");
+				post(" grainer~: could not allocate delay buffer. Delay suppressed");
 				g->delflag=FALSE;
 				x->delflag=FALSE; /*this is only because something REALLY bad may be happening*/
 			}
@@ -1521,7 +1521,7 @@ GRAIN *grain_setup(t_the_grainer_tilde *x)
 	return(g);
 }
 /********************************************************************/
-void grain_sinth(GRAIN *g, t_the_grainer_tilde *x)
+void grain_sinth(GRAIN *g, t_grainer_tilde *x)
 {
 
 if(--g->s_count) {
@@ -1549,7 +1549,7 @@ if(--g->s_count) {
 return; 
 }
 /********************************************************************/
-void compute_gap(t_the_grainer_tilde *x)
+void compute_gap(t_grainer_tilde *x)
 {
 t_float aux;
 
@@ -1563,7 +1563,7 @@ x->gap_samps= floor(aux*(t_float)x->sr);
 return;
 }
 /********************************************************************/
-void grainer_setup(t_the_grainer_tilde *x )
+void grainer_setup(t_grainer_tilde *x )
 {
 int i;
 
@@ -1638,7 +1638,7 @@ return;
 
 
 /********************************************************************/
-inline void grainer(GRAIN ***g, t_the_grainer_tilde *x)
+inline void grainer(GRAIN ***g, t_grainer_tilde *x)
 {
   int i, k;
   t_float grain=0.;
@@ -1689,7 +1689,7 @@ inline void grainer(GRAIN ***g, t_the_grainer_tilde *x)
   return;
 }
 /*************************************************************************************/
-void display_grainer_params(t_the_grainer_tilde *x )
+void display_grainer_params(t_grainer_tilde *x )
 {
 	char *str=NULL;
 	int i;
@@ -1697,7 +1697,7 @@ void display_grainer_params(t_the_grainer_tilde *x )
 	str=(char*)malloc(1024*sizeof(char));
 
 
-  	post("\nthe_grainer~ actual parameters **********************************");
+  	post("\ngrainer~ actual parameters **********************************");
 
 	if(x->active)
 		post("  grainer is active \t\t\t"); 
@@ -1832,8 +1832,8 @@ void charray_print(int size, t_float *data, char *str)
 }
 
 /******************************************************************/
-void gap_restart(t_the_grainer_tilde *x ) /*added by Damián Anache, 06/01/2016*/
+void gap_restart(t_grainer_tilde *x ) /*added by Damián Anache, 06/01/2016*/
 {
 	x->gap_count=x->gap_samps;
-	if(x->post_ctrl)post(" the_grainer~ gap counter is restarted"); 
+	if(x->post_ctrl)post(" grainer~ gap counter is restarted"); 
 }

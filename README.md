@@ -1,7 +1,7 @@
-the_grainer~ is an external object to be used in the Pure Data environment (Miller Puckette et al) .
+`grainer~` is an external object to be used in the Pure Data environment (Miller Puckette et al) .
 
-Except where otherwise noted, the_grainer~ is Copyright 2012 by Pablo Di Liscia.
-Improvements to the code were made by Dami·n Anache.
+Except where otherwise noted, grainer~ is Copyright 2012 by Pablo Di Liscia.
+Improvements to the code were made by Dami√°n Anache.
 
 The author hereby grant permission to use, copy, modify, distribute, and 
 license this software and its documentation for any purpose.  No written agreement, 
