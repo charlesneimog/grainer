@@ -1,0 +1,3 @@
+[submodule "resources/pd.cmake"]
+	path = resources/pd.cmake
+	url = https://github.com/pure-data/pd.cmake

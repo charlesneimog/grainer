@@ -90,7 +90,7 @@
 #X floatatom 614 492 5 0 0 0 - \$0-agGUIout - 0;
 #X obj 740 530 s \$0-mess;
 #X msg 740 508 ag \$1;
-#N canvas 54 423 582 208 GUI-initialSetup 0;
+#N canvas 54 423 582 208 GUI-initialSetup 1;
 #X obj 353 130 s \$0-incrGUIin;
 #X obj 143 130 s \$0-sizeGUIin;
 #X obj 252 130 s \$0-gapGUIin;
@@ -100,7 +100,7 @@
 #X msg 252 109 0.1;
 #X msg 353 109 1;
 #X msg 473 109 1;
-#X obj 473 130 s \$0-agGUIin;
+#X obj 471 151 s \$0-agGUIin;
 #X text 126 22 GUI initial setup acording to my_grainer~'s default values;
 #X obj 66 51 inlet;
 #X connect 3 0 4 0;
